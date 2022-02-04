@@ -1,5 +1,8 @@
 # All in one NZB and Torrent Downloader with Streaming, VPN and Kill Switch
 
+![image](https://user-images.githubusercontent.com/98993129/152457288-8664fdbe-0d2a-4793-8ea2-22873a843589.png)
+
+
 ### Description
 This group of services will allow you to search and download your favourite media files. It will automatically grab the best available content and if better quality versions comes online it will grab them automatically and add them to your media folders  
 
