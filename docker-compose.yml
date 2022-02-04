@@ -1,0 +1,141 @@
+version: "3.3"
+services:
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 8888:8888/tcp # HTTP proxy
+      - 8388:8388/tcp # Shadowsocks
+      - 8388:8388/udp # Shadowsocks
+      - 8084:9091 # Transmission
+      - 8083:8080 # SABnzb
+      - 8687:8686 # lidarr
+      - 9696:9696 # Prowlarr port
+      - 8989:8989 # Sonarr
+      - 7878:7878 # Radarr
+    volumes:
+      - ./${CONTAINER_CONFIGS}/gluetun:/gluetun
+    environment:
+      - VPNSP=${VPN_SERVICE_PROVIDER}
+      - VPN_TYPE=${VPN_TYPE}
+      - OPENVPN_USER=${VPN_USER}
+      - CITY=${VPN_CITY}
+      - HTTPPROXY=on
+      - PUID=${PUID}
+      - PGID=${PGUID}
+      - TZ=${TZ}
+
+  transmission:
+    image: lscr.io/linuxserver/transmission
+    container_name: transmission
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGUID}
+      - TZ=${TZ}
+      - TRANSMISSION_WEB_HOME=/flood-for-transmission/
+    volumes:
+      - ${CONTAINER_CONFIGS}/transmission:/config
+      - ${MEDIA_FOLDER}/downloads:/downloads
+      - ${MEDIA_FOLDER}/watch:/watch
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+
+  prowlarr:
+    image: linuxserver/prowlarr:amd64-nightly-version-0.2.0.1426
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGUID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONTAINER_CONFIGS}/prowlarr:/config
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+
+  sonarr:
+    image: linuxserver/sonarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGUID}
+      - TZ=${TZ}
+      - UMASK_SET=022
+    volumes:
+      - ${CONTAINER_CONFIGS}/sonarr:/config
+      - ${MEDIA_FOLDER}/tv:/tv
+      - ${MEDIA_FOLDER}/downloads:/downloads
+      - ${MEDIA_FOLDER}/incomplete:/incomplete-download
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+
+  radarr:
+    image: lscr.io/linuxserver/radarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGUID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONTAINER_CONFIGS}/radarr:/config
+      - ${MEDIA_FOLDER}/movies:/movies
+      - ${MEDIA_FOLDER}/downloads:/downloads
+      - ${MEDIA_FOLDER}/incomplete:/incomplete-download
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+
+  lidarr:
+    image: lscr.io/linuxserver/lidarr
+    links:
+      - "sabnzbd:sab"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGUID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONTAINER_CONFIGS}/lidarr:/config
+      - ${MEDIA_FOLDER}/music:/music
+      - ${MEDIA_FOLDER}/downloads:/downloads
+      - ${MEDIA_FOLDER}/incomplete:/incomplete-downloads
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd
+    container_name: sabnzbd-home
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGUID}
+      - TZ=${TZ}
+    volumes:
+      - ${CONTAINER_CONFIGS}/sabnzbd:/config
+      - ${MEDIA_FOLDER}/downloads:/downloads
+      - ${MEDIA_FOLDER}/incomplete:/incomplete-downloads
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+
+  homer:
+    image: b4bz/homer
+    container_name: homer
+    volumes:
+      - ${CONTAINER_CONFIGS}/homer/:/www/assets
+    ports:
+      - 8082:8080
+    restart: always
+
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGUID}
+      - TZ=${TZ}
+      - JELLYFIN_PublishedServerUrl=192.168.0.1
+    volumes:
+      - ${CONTAINER_CONFIGS}/jellyfin:/config
+      - ${MEDIA_FOLDER}/tv:/data/tvshows
+      - ${MEDIA_FOLDER}/movies:/data/movies
+      - ${MEDIA_FOLDER}/music:/data/music
+    ports:
+      - 8096:8096
+      - 8920:8920
+      - 7359:7359/udp 
+      - 1900:1900/udp 
+    restart: unless-stopped
